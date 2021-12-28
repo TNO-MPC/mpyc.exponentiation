@@ -6,11 +6,12 @@ The package tno.mpc.mpyc.exponentiation is part of the TNO Python Toolbox.
 
 The package contains a generic extension to MPyC that allows you to securely compute $`a^{[x]}`$, where $`a`$ is a non-negative, plain-text base (floating point or integer) and $`x`$ is a secure number (SecFxp or SecInt).
 
-*Limitations in (end-)use: the content of this software package may solely be used for applications that comply with international export control laws.*
+*Limitations in (end-)use: the content of this software package may solely be used for applications that comply with international export control laws.*  
+*This implementation of cryptographic software has not been audited. Use at your own risk.*
 
 ## Documentation
 
-Documentation of the tno.mpc.mpyc.exponentiation package can be found [here](https://docs.mpc.tno.nl/mpyc/exponentiation/1.4.0).
+Documentation of the tno.mpc.mpyc.exponentiation package can be found [here](https://docs.mpc.tno.nl/mpyc/exponentiation/1.6.2).
 
 ## Install
 

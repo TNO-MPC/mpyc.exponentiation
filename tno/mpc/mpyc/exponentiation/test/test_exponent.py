@@ -364,11 +364,11 @@ class TestSecurePow:
         """
         plaintext_list = list(range(-10, 11))
         x_sec = mpc.input(list(secnum(_) for _ in plaintext_list), 0)
-        with pytest.raises(AssertionError):
+        with pytest.raises(TypeError):
             secure_pow(base, x_sec)
 
     @staticmethod
-    @pytest.mark.parametrize("base", (2, 3))
+    @pytest.mark.parametrize("base", (-3, -2, 2, 3))
     @pytest.mark.parametrize("secnum", (secint, secint16))
     async def test_secure_pow_outcome_int_secint(
         base: int, secnum: Type[SecureInteger]
@@ -387,7 +387,7 @@ class TestSecurePow:
 
     @staticmethod
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("base", (2, 3))
+    @pytest.mark.parametrize("base", (-3, -2, 2, 3))
     @pytest.mark.parametrize("secnum", (secfxp, secfxp16))
     async def test_secure_pow_outcome_int_secfxp(
         base: int, secnum: Type[SecureFixedPoint]
@@ -404,11 +404,12 @@ class TestSecurePow:
         )
         plaintext_list_powed = [base ** xi for xi in plaintext_list]
         return_value = secure_pow(base, secure_list)
+
         assert await mpc.output(return_value) == plaintext_list_powed
 
     @staticmethod
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("base", (1.23, 2.0, 2, 3.0, math.e))
+    @pytest.mark.parametrize("base", (0.5, 1.23, 2.0, 2, 3.0, math.e))
     @pytest.mark.parametrize("secnum", (secfxp, secfxp16))
     async def test_secure_pow_outcome_float(
         base: int, secnum: Type[SecureFixedPoint]
@@ -426,6 +427,7 @@ class TestSecurePow:
         plaintext_list_powed = [base ** xi for xi in plaintext_list]
         return_value = secure_pow(base, secure_list)
         bit_precision = secfxp.frac_length // 2
+
         assert await mpc.output(return_value) == pytest_approx_default(
             plaintext_list_powed
         )
@@ -684,3 +686,58 @@ class TestSecurePowDomains:
             abs=2 ** -(DEFAULT_BIT_PRECISION // 2),
             rel=2 ** -(DEFAULT_BIT_PRECISION // 2 - 1),
         )
+
+    @staticmethod
+    def test_not_implemented_neg_base() -> None:
+        """
+        Verify output of conversions for edge cases.
+        """
+        with pytest.raises(NotImplementedError):
+            base = -2
+            secure_value = mpc.input(secfxp(2, integral=False), 0)
+            secure_pow(base, secure_value)
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_buffer_decreases_domain() -> None:
+        """
+        Verify that bit_buffer reduces the feasible domain.
+        """
+        base = DEFAULT_BASE
+        # Positive exponent + buffer-induced decreased domain -> reduced outcome
+        secure_value = mpc.input(secfxp(50, integral=False), 0)
+        no_buffer_return_value = secure_pow(
+            base, secure_value, bits_buffer=0, trunc_to_domain=True
+        )
+        yes_buffer_return_value = secure_pow(
+            base, secure_value, bits_buffer=5, trunc_to_domain=True
+        )
+        assert await mpc.output(no_buffer_return_value) > await mpc.output(
+            yes_buffer_return_value
+        )
+
+        # Negative exponent + buffer-induced decreased domain -> truncation
+        # more easily activates
+        secure_value = mpc.input(secfxp(minimal_exponent_secfxp + 3, integral=False), 0)
+        no_buffer_return_value = secure_pow(
+            base, secure_value, bits_buffer=0, trunc_to_domain=True
+        )
+        yes_buffer_return_value = secure_pow(
+            base, secure_value, bits_buffer=5, trunc_to_domain=True
+        )
+        # Sanity check: without buffer, the return value is nonzero
+        assert await mpc.output(no_buffer_return_value) > 0
+        # With buffer, the solution is not in the feasible domain and
+        # truncation was activated
+        assert await mpc.output(yes_buffer_return_value) == 0
+
+    @staticmethod
+    def test_large_buffer_raise_error() -> None:
+        """
+        Verify error is raised if buffer is too large (e.g. feasible domain
+        empty).
+        """
+        with pytest.raises(AssertionError):
+            base = 2
+            secure_value = mpc.input(secfxp(2, integral=False), 0)
+            secure_pow(base, secure_value, bits_buffer=30)

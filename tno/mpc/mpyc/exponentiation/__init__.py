@@ -9,4 +9,4 @@ from .exponent import secure_pow as secure_pow
 from .utils import convert_to_secfxp as convert_to_secfxp
 from .utils import convert_to_secint as convert_to_secint
 
-__version__ = "1.4.0"
+__version__ = "1.6.2"
